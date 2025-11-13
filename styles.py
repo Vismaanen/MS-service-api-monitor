@@ -56,7 +56,7 @@ def add_image_tr(path: str) -> str:
     :return: formatted image tr code
     :rtype: str
     """
-    return f'<tr><td style="width: 800px; text-align: center;"><img src="cid:{path}"></tr>'
+    return f'<tr><td style="width: 800px; text-align: center;"><img src="{path}"></tr>'
 
 
 # append styled section title table row
@@ -93,7 +93,7 @@ def append_section_health(health: float) -> str:
     if 100 >= value >= 97:
         style_font = 'font-size: 18; color:#041200; '
         style_cell = f"text-align: left; height: 24px; background-color: #fcc5c5; "
-    if 97 > value >= 95:
+    elif 97 > value >= 95:
         style_font = 'font-size: 18; color:#2b0000; '
         style_cell = f"text-align: left; height: 24px; background-color: #fff8d9; "
     else:
@@ -101,7 +101,17 @@ def append_section_health(health: float) -> str:
         style_cell = f"text-align: left; height: 24px; background-color: #ffd9d9; "
     # return formatted cell
     style_border = 'border-bottom: 2px solid black; '
+    # separate content depending on a notification - faulty data format
     if notification:
-        return f'<tr><td style="{style_cell}{style_border}{style_font}"><strong>{health}%</strong> [{notification}]</td></tr>'
-    return f'<tr><td style="{style_cell}{style_border}{style_font}"><strong>{health}%</strong></td></tr>'
+        return (f'<tr>'
+                f'<td style="{style_cell}{style_border}{style_font}">'
+                f'<strong>Overall service health: {health}%</strong> [{notification}]'
+                f'</td>'
+                f'</tr>')
+    # in case of no notification
+    return (f'<tr>'
+            f'<td style="{style_cell}{style_border}{style_font}">'
+            f'<strong>Overall service health: {health}%</strong>'
+            f'</td>'
+            f'</tr>')
 

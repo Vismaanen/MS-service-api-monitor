@@ -313,8 +313,8 @@ def create_health_report(log: logging.Logger, customer: str) -> None:
             # calculate percents, create images
             if analysis := analyze_service_health(raw_content, log):
                 # forward report
-                if body := create_report_body(analysis, log):
-                    send_report(body, log)
+                if reports := create_report_body(analysis, log):
+                    send_report(reports, log)
 
 
 def get_daily_report_data(log: logging.Logger, customer: str) -> list[Any] | None:
@@ -660,7 +660,7 @@ def format_report_content(data: list[str], log: logging.Logger) -> dict[str, Any
         return results if results else None
 
 
-def create_report_body(analysis: dict[str, Any], log: logging.Logger) -> dict[str, str] | None:
+def create_report_body(analysis: dict[str, Any], log: logging.Logger) -> dict[str, Any] | None:
     """
     Attempt to create email report body per customer.
 
@@ -676,6 +676,7 @@ def create_report_body(analysis: dict[str, Any], log: logging.Logger) -> dict[st
     try:
         # default per-customer steps
         for customer in analysis:
+            customer_data = analysis[customer]
             # create table header
             html_string = s.set_theader()
             # add services sections
@@ -700,33 +701,34 @@ def create_report_body(analysis: dict[str, Any], log: logging.Logger) -> dict[st
             # close overall table header
             html_string += s.close_theader()
             # append to dict
-            results[customer] = html_string
+            customer_data['html'] = html_string
+            results[customer] = customer_data
     except Exception as exc:
         log.error(f'> cannot create report email body: {exc}')
     finally:
         return results if results else None
 
 
-def send_report(body, log):
+def send_report(reports: dict[str, Any], log):
     """
+    Attempt to send a report via SMTP.
 
-    :param str body: message body *.html code string
-    :param log: log object
     :return:
     """
     # global variables setting
     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M')
     # separate reports per customer
-    for customer in body:
+    for customer in reports:
         # get html body
-        html_body = body[customer]
+        html_body = reports[customer]['html']
+        # combine list of file paths for email cid replacement and files attachment
+        files = [value['chart'] for key, value in reports[customer].items() if key != 'html' and 'chart' in value]
         # create message object
         try:
+            # connect with a server
+            # failure will throw an exception
             server = smtplib.SMTP(c.SMTP_SERVER, c.SMTP_PORT)
             message_object = MIMEMultipart()
-            # attach email body
-            message_body = f'Hello, <br /><br />{html_body}{c.MAIL_SIGNATURE}'
-            message_object.attach(MIMEText(message_body, "html", "utf-8"))
             # attach signature
             # signature_image = MIMEImage(open('C:\\ECS\\Resources\\signature.png', 'rb').read())
             # signature_image.add_header('Content-ID', '<signature>')
@@ -736,6 +738,24 @@ def send_report(body, log):
             message_object["To"] = c.CUSTOMERS[customer]['mail_to']
             message_object["Cc"] = c.CUSTOMERS[customer]['mail_cc']
             message_object["Subject"] = f'[{customer}] MS service health check - {timestamp}'
+            # append charts as attachments
+            # for each file create simple cid
+            # then replace paths in html code with cids
+            for path in files:
+                with open(path, "rb") as f:
+                    img = MIMEImage(f.read())
+                    # create cid
+                    cid = os.path.basename(path).replace(" ", "_")
+                    # append file to message
+                    img.add_header("Content-ID", f"<{cid}>")
+                    img.add_header("Content-Disposition", "inline", filename=os.path.basename(path))
+                    message_object.attach(img)
+                    # replace original path with a cid to enable displaying image in email body
+                    html_body = html_body.replace(path, f"cid:{cid}")
+            # replace link with cid
+            # attach email body
+            message_body = f'Hello, <br /><br />{html_body}{c.MAIL_SIGNATURE}'
+            message_object.attach(MIMEText(message_body, "html", "utf-8"))
             # send message, notify if failed
             server.send_message(message_object)
             log.info(f'> email sent')
