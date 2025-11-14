@@ -47,16 +47,16 @@ STATUS_MAP = {
 # this dictionary stores names of customers and corresponding names of env variables
 # for each customer set which services are to be monitored
 CUSTOMERS = {
-    'robeco': {
-        'variable': 'API_CHECK_ROBECO',
+    'customer1': {
+        'variable': 'API_CHECK_CUSTOMER1',
         'services': ['Intune', 'Microsoft365Defender'],
-        'mail_to': 'michal.paradowski@fujitsu.com',
+        'mail_to': 'recipient@domain.com',
         'mail_cc': ''
     },
-    'pnh': {
-        'variable': 'API_CHECK_PNH',
+    'customer2': {
+        'variable': 'API_CHECK_CUSTOMER2',
         'services': ['Intune', 'Microsoft365Defender'],
-        'mail_to': 'michal.paradowski@fujitsu.com',
+        'mail_to': 'recipient@domain.com',
         'mail_cc': ''
     }
 }
@@ -64,16 +64,14 @@ CUSTOMERS = {
 # Database scope limit
 # determine after how many months data should be deleted
 DB_DAYS_SCOPE = 30
-DB_DAYS_PREV_FROM = 1
+DB_DAYS_PREV_FROM = 11
 DB_DAYS_PREV_TO = 1
 
 # Mailing configuration
 # set SMTP server address, port and message details below
-SMTP_SERVER = '10.172.107.4'
+SMTP_SERVER = '192.168.1.1'
 SMTP_PORT = 25
-MAIL_FROM = 'ecs_automation@fujitsu.com'
-MAIL_TO = 'michal.paradowski@fujitsu.com'
-MAIL_CC = ''
+MAIL_FROM = 'sender@domain.com'
 MAIL_SUBJECT = 'MS Service health report'
 # for a custom signature: paste HTML code here
 MAIL_SIGNATURE = '<hr><p style="color: gray;">This is an automated message - please do not reply.</p>'
