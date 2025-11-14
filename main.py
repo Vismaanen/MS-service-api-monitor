@@ -12,14 +12,10 @@ Dependencies    : pip install msal sqlite3 requests matplotlib
 
 # default libs
 import os
-import smtplib
 import sys
-from email.mime.image import MIMEImage
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-
 import msal
 import sqlite3
+import smtplib
 import logging
 import requests
 import argparse
@@ -27,12 +23,16 @@ import config as c
 import styles as s
 import pandas as pd
 import matplotlib.pyplot as plt
+from email.mime.text import MIMEText
+from email.mime.image import MIMEImage
+from email.mime.multipart import MIMEMultipart
 
-# additional utilities
+# additional dependencies
 from typing import Any
 from pathlib import Path
-from datetime import datetime, timedelta
 from collections import Counter
+from datetime import datetime, timedelta
+from matplotlib.dates import DateFormatter
 
 
 def main(**kwargs) -> None:
@@ -232,8 +232,10 @@ def perform_api_health_scan(log: logging.Logger) -> None:
             log.info('-------------------')
             log.info(f'customer: {customer}')
             # obtain credentials
-            # raw_credentials = get_env_variable(customers[customer]['variable'])
-            _raw_credentials = customers[customer]['fallback']
+            variable_name = customers.get(customer, {}).get("variable")
+            if not variable_name:
+                log.warning(f"> variable key missing for customer '{customer}'.")
+            _raw_credentials = get_env_variable(variable_name, log)
             # get customer monitored services
             services = customers[customer]['services']
             # attempt to obtain auth token
@@ -457,6 +459,11 @@ def create_health_chart(customer: str, service: str, data: list[Any], log: loggi
         plt.plot(df['timestamp'], df['value'], drawstyle='steps-post', linewidth=1, color='steelblue', marker='.')
         # format chart object
         plt.yticks(list(c.STATUS_MAP.values()), list(c.STATUS_MAP.keys()))
+        # X-axis time format
+        ax = plt.gca()
+        ax.xaxis.set_major_formatter(DateFormatter('%m-%d %H:%M'))
+        plt.xticks(rotation=60, ha='right')
+        # grid and area formatting
         plt.grid(True, linestyle='--', alpha=0.5)
         plt.tight_layout()
         # for test purposes image can be shown
@@ -496,7 +503,7 @@ def calculate_health_percent(data: list[Any], log: logging.Logger) -> list[Any] 
         ok_percentage = (ok_count / total) * 100 if total > 0 else 0
         # count each status occurrence percentage
         counter = Counter(statuses)
-        percentages = {key: (value / total) * 100 for key, value in counter.items()}
+        percentages = {key: round((value / total) * 100, 2) for key, value in counter.items()}
         results = {
             "overall": ok_percentage,
             "services": percentages
@@ -721,7 +728,10 @@ def create_report_body(analysis: dict[str, Any], log: logging.Logger) -> dict[st
             customer_data = analysis[customer]
             # create table header
             html_string = s.set_theader()
+            # append report info
+            html_string += s.append_report_info()
             # add services sections
+            html_string += '<tr><td>'
             for service in analysis[customer]:
                 service_data = analysis[customer][service]
                 html_string += s.set_theader()
@@ -742,6 +752,7 @@ def create_report_body(analysis: dict[str, Any], log: logging.Logger) -> dict[st
                 html_string += s.close_theader()
                 html_string += '</br>'
             # close overall table header
+            html_string += '</td></tr>'
             html_string += s.close_theader()
             # append to dict
             customer_data['html'] = html_string
@@ -785,18 +796,14 @@ def send_report(reports: dict[str, Any], log: logging.Logger) -> None:
         # if connection successful - create a message
         try:
             message_object = MIMEMultipart()
-            # attach signature
-            # signature_image = MIMEImage(open('C:\\ECS\\Resources\\signature.png', 'rb').read())
-            # signature_image.add_header('Content-ID', '<signature>')
-            # message_object.attach(signature_image)
-            # assign other properties
+            # assign email properties
             message_object["From"] = c.MAIL_FROM
             message_object["To"] = c.CUSTOMERS[customer]['mail_to']
             message_object["Cc"] = c.CUSTOMERS[customer]['mail_cc']
-            message_object["Subject"] = f'[{customer}] {c.MAIL_SUBJECT} - {timestamp}'
+            message_object["Subject"] = f'[{customer.upper()}] {c.MAIL_SUBJECT} - {timestamp}'
             # append charts as attachments
             # for each file create simple cid
-            # then replace paths in html code with cids
+            # then replace paths in html code with cid's
             for path in files:
                 with open(path, "rb") as f:
                     img = MIMEImage(f.read())
@@ -821,7 +828,7 @@ def send_report(reports: dict[str, Any], log: logging.Logger) -> None:
             log.info(f'> email sent')
         except Exception as exe:
             log.error(f'> message sending ERROR: [{str(exe)}]')
-        return
+    return
 
 
 if __name__ == '__main__':

@@ -50,18 +50,12 @@ CUSTOMERS = {
     'robeco': {
         'variable': 'API_CHECK_ROBECO',
         'services': ['Intune', 'Microsoft365Defender'],
-        'fallback': '71dd74e2-a620-4a8e-9ac4-a19e1ff9ddff;'
-                    '081a0772-fc9a-48fd-8af3-7ef0e2b74634;'
-                    '0x-8Q~2K4vKZHZgatN8Lu6JTv-oqWI5v-6SAcb80',
         'mail_to': 'michal.paradowski@fujitsu.com',
         'mail_cc': ''
     },
     'pnh': {
         'variable': 'API_CHECK_PNH',
         'services': ['Intune', 'Microsoft365Defender'],
-        'fallback': '49f943ef-3ce2-42d2-b529-ea37741a617b;'
-                    '39b68e2d-1b96-4d73-96c8-3127a753d993;'
-                    '4YS8Q~6dRFxMefR8YsRrZoj9N9b_tV4jT6vJocvu',
         'mail_to': 'michal.paradowski@fujitsu.com',
         'mail_cc': ''
     }
@@ -69,9 +63,9 @@ CUSTOMERS = {
 
 # Database scope limit
 # determine after how many months data should be deleted
-DB_DAYS_SCOPE = 190
-DB_DAYS_PREV_FROM = 5
-DB_DAYS_PREV_TO = 0
+DB_DAYS_SCOPE = 30
+DB_DAYS_PREV_FROM = 1
+DB_DAYS_PREV_TO = 1
 
 # Mailing configuration
 # set SMTP server address, port and message details below

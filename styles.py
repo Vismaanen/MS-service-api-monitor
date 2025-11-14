@@ -132,3 +132,27 @@ def append_section_health(health: float) -> str:
     if notification:
         content += f" [{notification}]"
     return f"<tr><td style=\"{style}\">{content}</td></tr>"
+
+
+def append_report_info() -> str:
+    """
+    Format and return report info header table row.
+
+    :return: tr info content
+    :rtype: str
+    """
+    style_font = 'font-size: 14; '
+    style_cell = f"text-align: left; height: 24px; background-color: #e0e0e0;"
+    style_border = f"border: 1px solid gray; "
+    return (f'<tr><td style="{style_cell}{style_font}{style_border}">This report shows overall service health '
+            f'percentage based on status data obtained from Microsoft Graph API. Data shown here may be used to '
+            f'troubleshoot potential performance or accessibility issues with monitored Microsoft services. More '
+            f'details on specific service states can be found within vendor resources listed below:'
+            f'<ul>'
+            f'<li><a href="https://learn.microsoft.com/en-us/graph/api/serviceannouncement-list-healthoverviews?view'
+            f'=graph-rest-1.0" target="_blank">Resource list: [healthOverviews]</a></li>'
+            f'<li><a href="https://learn.microsoft.com/en-us/graph/api/resources/servicehealth?view=graph-rest-1.0" '
+            f'target="_blank">Description: [serviceHealth]</a></li>'
+            f'<li><a href="https://learn.microsoft.com/en-us/graph/service-communications-concept-overview" '
+            f'target="_blank">Description of [Service Communications]</a></li>'
+            f'</ul></td></tr>')
