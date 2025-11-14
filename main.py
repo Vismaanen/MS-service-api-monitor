@@ -1,5 +1,13 @@
 """
-Description     : Microsoft API service health check script.
+Subject         : Microsoft API service health check script.
+Description     : Script performs two separate functions:
+
+                - enables continuous logging of selected Microsoft service states into a local SQLite database,
+                - enables creation of a report of service health states logged previously:
+                - for all customers,
+                - for a selected customer.
+
+Dependencies    : pip install msal sqlite3 requests matplotlib
 """
 
 # default libs
@@ -49,7 +57,7 @@ def main(**kwargs) -> None:
 
     # check customer
     if not kwargs['customer']:
-        customer = 'all'
+        customer = 'None'
     else:
         customer = kwargs['customer']
 
@@ -62,7 +70,7 @@ def main(**kwargs) -> None:
 
 
 # UTILITY FUNCTIONS --------------------------------------------------
-def create_log() -> logging.Logger:
+def create_log() -> logging.Logger or exit:
     """
     Create and return app log file object.
 
@@ -108,7 +116,7 @@ def args_parser() -> dict[str, Any]:
     :return: dictionary of arguments
     :rtype: dict[str, Any]
     """
-    parser = argparse.ArgumentParser(description='Neo')
+    parser = argparse.ArgumentParser(description='MS-service-api-monitor')
     parser.add_argument('-m', '--mode', metavar='mode', help='Provide task to perform', type=str)
     parser.add_argument('-c', '--customer', metavar='customer', help='Provide customer name', type=str)
     args = parser.parse_args()
@@ -138,9 +146,36 @@ def select_mode(log: logging.Logger) -> str or exit:
         exit()
 
 
+def ask_for_customer(customer: str, log: logging.Logger) -> str or exit:
+    """
+    Ask for a user input to get customer name to proceed with a report.
+
+    :param str customer: provided customer name or 'None' string
+    :param log: log object
+    :type log: logging.Logger
+    :return: chosen customer name, validated against configuration
+    :rtype: str
+    """
+    if customer == 'None':
+        # ask for customer selection
+        log.info('customer argument not provided - options:')
+        log.info('> all')
+        for customer in c.CUSTOMERS:
+            log.info(f'> {customer}')
+        customer = input(f"Chosen customer: ")
+    # validate response
+    if customer not in [name for name, config in c.CUSTOMERS.items()] and customer != 'all':
+        log.warning('> customer not recognized in configuration, exiting...')
+        exit()
+    else:
+        log.info('> customer valid, proceeding')
+        return customer.lower()
+
+
 def check_database() -> bool:
     """
     Check if local database already exists in its directory.
+
     :return: True or False
     :rtype: bool
     """
@@ -178,6 +213,7 @@ def perform_api_health_scan(log: logging.Logger) -> None:
 
     :param log: log object
     :type log: logging.Logger
+    :raise Exception: general unspecified API check code exception
     """
     health = {}
     try:
@@ -229,6 +265,7 @@ def ms_authenticate(raw_credentials: str, log: logging.Logger) -> str | None:
     :type log: logging.Logger
     :return: obtained token string, optional
     :rtype: str or None
+    :raise Exception: authentication unexpected exception
     """
     try:
         tenant_id, client_id, secret = raw_credentials.split(";")
@@ -266,6 +303,7 @@ def ms_get_data(customer: str, _token: str, services: list[Any], log: logging.Lo
     :type log: logging.Logger
     :return: obtained health data list
     :rtype: list[Any] or None
+    :raise Exception: API request exception
     """
     results = []
     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -303,6 +341,10 @@ def create_health_report(log: logging.Logger, customer: str) -> None:
     :type log: logging.Logger
     :raise Exception: general report build exception
     """
+    # customer validation
+    # check if a customer was provided as an argument
+    # if not - proceed with asking for an input
+    customer = ask_for_customer(customer, log)
     # collect data
     # structure into a dictionary
     # analyze data to create tables for charts, calculate percentages
@@ -408,14 +450,13 @@ def create_health_chart(customer: str, service: str, data: list[Any], log: loggi
         df = pd.DataFrame(data, columns=['timestamp', 'status'])
         df['timestamp'] = pd.to_datetime(df['timestamp'])
         df['value'] = df['status'].map(c.STATUS_MAP)
+        # set consolas font for report consistency
+        plt.rcParams['font.family'] = 'Consolas'
         # create chart object
         plt.figure(figsize=(10, 4))
-        plt.plot(df['timestamp'], df['value'], drawstyle='steps-post', linewidth=2, color='blue', marker='o')
+        plt.plot(df['timestamp'], df['value'], drawstyle='steps-post', linewidth=1, color='steelblue', marker='.')
         # format chart object
         plt.yticks(list(c.STATUS_MAP.values()), list(c.STATUS_MAP.keys()))
-        plt.title(f"{service} status changes over time")
-        plt.xlabel("Time")
-        plt.ylabel("Status")
         plt.grid(True, linestyle='--', alpha=0.5)
         plt.tight_layout()
         # for test purposes image can be shown
@@ -448,7 +489,7 @@ def calculate_health_percent(data: list[Any], log: logging.Logger) -> list[Any] 
         statuses = [status for _, status in data]
         mapped = [c.STATUS_MAP.get(status, 0) for status in statuses]
         # based on a status map - summarize OK's
-        ok_count = sum(1 for s in mapped if s >= 9)
+        ok_count = sum(1 for state in mapped if state >= 9)
         # get total items count
         total = len(mapped)
         # calculate overall OK / NOK percentage
@@ -474,6 +515,7 @@ def create_local_db(log: logging.Logger):
 
     :param log: log object
     :type log: logging.Logger
+    :raise Exception: database creation exception: check permissions to write in a configured db location
     """
     try:
         log.info(f'attempting to create local SQLite database')
@@ -495,7 +537,7 @@ def create_local_db(log: logging.Logger):
             conn.commit()
         log.info(f'> ok')
     except Exception as exc:
-        log.error(f'> error while creating local SQLite database: {exc}')
+        log.error(f'> error while creating local SQLite database at {c.DIR_DB}: {exc}')
         exit()
 
 
@@ -538,7 +580,7 @@ def delete_outdated_records(log: logging.Logger) -> None:
 
     :param log: log object
     :type log: logging.Logger
-    :raise Exception: data delete exception
+    :raise Exception: data delete exception: validate query and database state
     """
     conn = None
     try:
@@ -684,7 +726,7 @@ def create_report_body(analysis: dict[str, Any], log: logging.Logger) -> dict[st
                 service_data = analysis[customer][service]
                 html_string += s.set_theader()
                 # append service name row
-                html_string += s.append_section_title(service)
+                html_string += s.append_section_title(f'⚙️ {service}')
                 # append overall service compliance record
                 if service_data["percentages"]["overall"]:
                     html_string += s.append_section_health(service_data["percentages"]["overall"])
@@ -693,11 +735,12 @@ def create_report_body(analysis: dict[str, Any], log: logging.Logger) -> dict[st
                     html_string += s.add_image_tr(service_data['chart'])
                 # append per-service state occurrence %
                 if service_data["percentages"]["services"]:
-                    html_string += s.append_section_title('Service health state distribution')
+                    html_string += s.append_service_state_record(f'<strong>Service health states occurrence:</strong>')
                     for state, occurrence in service_data["percentages"]["services"].items():
-                        html_string += f'<tr><td>{state}: {occurrence}%</td></tr>'
+                        html_string += s.append_service_state_record(f'{state}: {occurrence}%')
                 # close service table header
                 html_string += s.close_theader()
+                html_string += '</br>'
             # close overall table header
             html_string += s.close_theader()
             # append to dict
@@ -709,11 +752,17 @@ def create_report_body(analysis: dict[str, Any], log: logging.Logger) -> dict[st
         return results if results else None
 
 
-def send_report(reports: dict[str, Any], log):
+def send_report(reports: dict[str, Any], log: logging.Logger) -> None:
     """
     Attempt to send a report via SMTP.
 
-    :return:
+    :param reports: report data dictionary - with analysis and image paths as well as *.html report code
+    :param log: log object
+    :type reports: dict[str, Any]
+    :type log: logging.Logger
+    :raise Exception: ``exc`` SMTP connection failure exception, skipping other steps
+    :raise Exception: ``exd`` email object creation exception
+    :raise Exception: ``exe`` email sending exception
     """
     # global variables setting
     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M')
@@ -723,11 +772,18 @@ def send_report(reports: dict[str, Any], log):
         html_body = reports[customer]['html']
         # combine list of file paths for email cid replacement and files attachment
         files = [value['chart'] for key, value in reports[customer].items() if key != 'html' and 'chart' in value]
-        # create message object
+        # test / connect with SMTP
+
+        # connect with a server
+        # failure will throw an exception exiting a script
         try:
-            # connect with a server
-            # failure will throw an exception
             server = smtplib.SMTP(c.SMTP_SERVER, c.SMTP_PORT)
+        except Exception as exc:
+            log.error(f'> cannot connect with SMTP: {exc}')
+            exit()
+
+        # if connection successful - create a message
+        try:
             message_object = MIMEMultipart()
             # attach signature
             # signature_image = MIMEImage(open('C:\\ECS\\Resources\\signature.png', 'rb').read())
@@ -737,7 +793,7 @@ def send_report(reports: dict[str, Any], log):
             message_object["From"] = c.MAIL_FROM
             message_object["To"] = c.CUSTOMERS[customer]['mail_to']
             message_object["Cc"] = c.CUSTOMERS[customer]['mail_cc']
-            message_object["Subject"] = f'[{customer}] MS service health check - {timestamp}'
+            message_object["Subject"] = f'[{customer}] {c.MAIL_SUBJECT} - {timestamp}'
             # append charts as attachments
             # for each file create simple cid
             # then replace paths in html code with cids
@@ -752,18 +808,20 @@ def send_report(reports: dict[str, Any], log):
                     message_object.attach(img)
                     # replace original path with a cid to enable displaying image in email body
                     html_body = html_body.replace(path, f"cid:{cid}")
-            # replace link with cid
-            # attach email body
+            # attach parsed email body
             message_body = f'Hello, <br /><br />{html_body}{c.MAIL_SIGNATURE}'
             message_object.attach(MIMEText(message_body, "html", "utf-8"))
-            # send message, notify if failed
+        except Exception as exd:
+            log.error(f'> message creation exception: {exd}')
+            continue
+
+        # send message, notify if failed
+        try:
             server.send_message(message_object)
             log.info(f'> email sent')
-        except Exception as exc:
-            log.warning(f'> message sending ERROR: [{str(exc)}]')
+        except Exception as exe:
+            log.error(f'> message sending ERROR: [{str(exe)}]')
         return
-
-
 
 
 if __name__ == '__main__':

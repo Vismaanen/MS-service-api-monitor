@@ -21,7 +21,6 @@ def set_theader() -> str:
     """
     Return code of a new table with default settings related to cell spacing and padding.
 
-    :param int width: table width in px
     :return: ``html`` table header
     :rtype: str
     """
@@ -68,10 +67,23 @@ def append_section_title(title: str) -> str:
     :return: formatted section row
     :rtype: str
     """
-    style_border = 'border-bottom: 2px solid black; '
     style_font = 'font-size: 18; color:#003780; '
     style_cell = f"text-align: left; height: 24px; "
-    return f'<tr><td style="{style_cell}{style_border}{style_font}"><strong>{title}</strong></td></tr>'
+    return f'<tr><td style="{style_cell}{style_font}"><strong>{title}</strong></td></tr>'
+
+
+def append_service_state_record(service: str) -> str:
+    """
+    Return report section title header.
+
+    :param str service: service state and percentage of occurrence
+    :return: formatted section row
+    :rtype: str
+    """
+    style_font = 'font-size: 14; color:#003780; '
+    style_cell = f"text-align: left; height: 24px; "
+    style_border = f"border-bottom: 1px solid silver; "
+    return f'<tr><td style="{style_cell}{style_font}{style_border}">{service}</td></tr>'
 
 
 def append_section_health(health: float) -> str:
@@ -82,36 +94,41 @@ def append_section_health(health: float) -> str:
     :return: formatted section row
     :rtype: str
     """
-    # check value if correct
+    # validate health value / format
     try:
         value = int(health)
         notification = None
-    except ValueError:
+    except (ValueError, TypeError):
         value = 0
-        notification = 'wrong % value from service'
-    # set color format depending on a health
-    if 100 >= value >= 97:
-        style_font = 'font-size: 18; color:#041200; '
-        style_cell = f"text-align: left; height: 24px; background-color: #fcc5c5; "
-    elif 97 > value >= 95:
-        style_font = 'font-size: 18; color:#2b0000; '
-        style_cell = f"text-align: left; height: 24px; background-color: #fff8d9; "
-    else:
-        style_font = 'font-size: 18; color:#2b0000; '
-        style_cell = f"text-align: left; height: 24px; background-color: #ffd9d9; "
-    # return formatted cell
-    style_border = 'border-bottom: 2px solid black; '
-    # separate content depending on a notification - faulty data format
-    if notification:
-        return (f'<tr>'
-                f'<td style="{style_cell}{style_border}{style_font}">'
-                f'<strong>Overall service health: {health}%</strong> [{notification}]'
-                f'</td>'
-                f'</tr>')
-    # in case of no notification
-    return (f'<tr>'
-            f'<td style="{style_cell}{style_border}{style_font}">'
-            f'<strong>Overall service health: {health}%</strong>'
-            f'</td>'
-            f'</tr>')
+        notification = "wrong % value from service"
 
+    # Define styles based on health ranges
+    if 100 >= value >= 97:
+        background = "#e3fad2"
+        font_color = "#0f2400"
+        border_color = "#071200"
+    elif 97 > value >= 95:
+        background = "#fff8d9"
+        font_color = "#2b0000"
+        border_color = "#300400"
+    else:
+        background = "#ffd9d9"
+        font_color = "#2b0000"
+        border_color = "#300400"
+
+    # build unified style setting
+    style = (
+        f"text-align: left; "
+        f"height: 24px; "
+        f"font-size: 14; "
+        f"color: {font_color}; "
+        f"background-color: {background}; "
+        f"border: 1px solid; "
+        f"border-color: {border_color}; "
+    )
+
+    # append text content, return formatted table row
+    content = f"Overall service health: {health}%"
+    if notification:
+        content += f" [{notification}]"
+    return f"<tr><td style=\"{style}\">{content}</td></tr>"

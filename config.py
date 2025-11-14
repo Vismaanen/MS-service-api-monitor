@@ -22,23 +22,23 @@ API_ENDPOINT_SCOPE = ["https://graph.microsoft.com/.default"]
 # https://learn.microsoft.com/en-us/graph/api/resources/servicehealth?view=graph-rest-1.0
 STATUS_MAP = {
     "serviceOperational": 10,
-    "investigating": 8,
-    "serviceDegradation": 6,  # lower performance than operational, still working well, consider as OK
-    "serviceInterruption": 4,
-    "restoringService": 5,
-    "verifyingService": 7,
     "serviceRestored": 9,  # consider as OK
-    "extendedRecovery": 5,
-    "investigationSuspended": 3,  # awaiting customer response / details
     "falsePositive": 9,  # consider as OK
     "postIncidentReviewPublished": 9,  # consider as OK
     "resolved": 9,  # consider as OK
-    "mitigatedExternal": 7,
-    "mitigated": 7,
     "resolvedExternal": 9,  # consider as OK
+    "serviceDegradation": 9,  # lower performance than operational, still working well, consider as OK
+    "investigating": 8,
     "confirmed": 8,
     "reported": 8,
-    "unknownValue": 0
+    "mitigatedExternal": 7,
+    "mitigated": 7,
+    "verifyingService": 6,
+    "restoringService": 5,
+    "extendedRecovery": 5,
+    "serviceInterruption": 4,
+    "investigationSuspended": 3,  # awaiting customer response / details
+    "": 0
 }
 
 # Customer configuration section
@@ -55,7 +55,7 @@ CUSTOMERS = {
                     '0x-8Q~2K4vKZHZgatN8Lu6JTv-oqWI5v-6SAcb80',
         'mail_to': 'michal.paradowski@fujitsu.com',
         'mail_cc': ''
-        },
+    },
     'pnh': {
         'variable': 'API_CHECK_PNH',
         'services': ['Intune', 'Microsoft365Defender'],
@@ -70,7 +70,7 @@ CUSTOMERS = {
 # Database scope limit
 # determine after how many months data should be deleted
 DB_DAYS_SCOPE = 190
-DB_DAYS_PREV_FROM = 1
+DB_DAYS_PREV_FROM = 5
 DB_DAYS_PREV_TO = 0
 
 # Mailing configuration
@@ -82,4 +82,4 @@ MAIL_TO = 'michal.paradowski@fujitsu.com'
 MAIL_CC = ''
 MAIL_SUBJECT = 'MS Service health report'
 # for a custom signature: paste HTML code here
-MAIL_SIGNATURE = 'test'
+MAIL_SIGNATURE = '<hr><p style="color: gray;">This is an automated message - please do not reply.</p>'
