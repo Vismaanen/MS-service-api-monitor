@@ -7,7 +7,7 @@ Description     : Script performs two separate functions:
                 - for all customers,
                 - for a selected customer.
 
-Dependencies    : pip install msal sqlite3 requests matplotlib
+Dependencies    : pip install msal requests matplotlib
 """
 
 # default libs

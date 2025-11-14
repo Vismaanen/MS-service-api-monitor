@@ -42,8 +42,8 @@ STATUS_MAP = {
 }
 
 # Customer configuration section
-# IMPORTANT: sensitive information stored in env variables in format:
-# tenant id; client id;secret value
+# IMPORTANT: sensitive information stored in env variables in ";" delimited string format:
+# tenantId;clientId;secretValue
 # this dictionary stores names of customers and corresponding names of env variables
 # for each customer set which services are to be monitored
 CUSTOMERS = {
