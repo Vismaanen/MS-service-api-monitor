@@ -1,6 +1,6 @@
 # 📃 Microsoft Service health API monitoring script
 
-[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 ## 💫 Updates
 2025-11-14 - initial version of the script
