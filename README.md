@@ -3,7 +3,7 @@
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 ## 💫 Updates
-2025-11-14 - initial version of the script
+2025-11-14 - initial version of the script and documentation
 
 ## ⚙️ Main functionalities
 Script enables service health monitoring and reporting capabilities by using Microsoft Graph API resources

@@ -132,7 +132,7 @@ def select_mode(log: logging.Logger) -> str or exit:
     :return: chosen mode string
     :rtype: str
     """
-    log.info('select task to perform')
+    log.info('select task to perform, provide mode as shown:')
     log.info('scan - connect with customer API to obtain service health info')
     log.info('report - prepare a summary service health report email')
     # get user input
